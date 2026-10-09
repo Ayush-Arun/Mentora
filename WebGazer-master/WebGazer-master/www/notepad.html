@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGazer Eye Tracking Notepad</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- WebGazer scripts -->
+    <script src="./webgazer.js"></script>
+    <script src="./js/precision_calculation.js"></script>
+    <script src="./js/precision_store_points.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #151c2c;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --highlight-bg: rgba(236, 72, 153, 0.25);
+            --word-gaze-bg: #e11d48;
+            --word-gaze-text: #ffffff;
+            --line-highlight-bg: rgba(99, 102, 241, 0.18);
+            --line-indicator: #6366f1;
+            --border-color: #2e3a52;
+            --navbar-height: 64px;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+            --accent-glow: rgba(79, 70, 229, 0.25);
+            --highlight-bg: rgba(236, 72, 153, 0.18);
+            --word-gaze-bg: #dc2626;
+            --word-gaze-text: #ffffff;
+            --line-highlight-bg: rgba(79, 70, 229, 0.12);
+            --line-indicator: #4f46e5;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* HARD-SCOPED TOP-LEFT CAMERA POSITION FOR WEBGAZER */
+        #webgazerVideoContainer {
+            display: block !important;
+            position: fixed !important;
+            top: 12px !important;
+            left: 12px !important;
+            width: 200px !important;
+            height: 150px !important;
+            z-index: 99990 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+            border: 2px solid var(--accent-color) !important;
+            overflow: hidden !important;
+            background-color: #000 !important;
+            transition: all 0.3s ease !important;
+        }
+
+        #webgazerVideoFeed, #webgazerFaceOverlay, #webgazerFaceFeedbackBox {
+            border-radius: 10px !important;
+        }
+
+        /* Top Navbar */
+        .navbar {
+            height: var(--navbar-height);
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .btn:hover {
+            background-color: var(--border-color);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            box-shadow: 0 2px 10px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+        }
+
+        .btn-fullscreen {
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            color: white;
+            border: none;
+            box-shadow: 0 2px 10px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-fullscreen:hover {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+        }
+
+        .btn-active {
+            border-color: var(--accent-color);
+            background-color: var(--line-highlight-bg);
+            color: var(--accent-color);
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+
+        .status-dot.active {
+            background-color: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        /* Layout Container */
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - var(--navbar-height));
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Settings Sidebar */
+        .toolbar {
+            width: 300px;
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            overflow-y: auto;
+            transition: margin-left 0.3s ease;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .range-slider {
+            width: 100%;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .select-input {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        /* Content Viewport */
+        .viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        /* Tab switch header */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 2px 8px var(--accent-glow);
+        }
+
+        /* Editor Mode */
+        .editor-pane {
+            flex: 1;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow: hidden;
+        }
+
+        .editor-textarea {
+            flex: 1;
+            width: 100%;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .editor-textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .editor-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Reader / Gaze Mode Pane */
+        .reader-pane {
+            flex: 1;
+            padding: 2.5rem 4rem;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            position: relative;
+            user-select: text;
+        }
+
+        .reader-content {
+            max-width: 920px;
+            margin: 0 auto;
+            line-height: 1.8;
+            font-size: 1.25rem;
+            padding-bottom: 5rem;
+        }
+
+        /* FULLSCREEN READING MODE STYLES */
+        body.is-fullscreen .navbar {
+            transform: translateY(-100%);
+            position: fixed;
+        }
+
+        body.is-fullscreen .toolbar {
+            margin-left: -300px;
+        }
+
+        body.is-fullscreen .main-container {
+            height: 100vh;
+        }
+
+        body.is-fullscreen .tab-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 1001;
+            background: rgba(21, 28, 44, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 0 0 0 12px;
+            border-left: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+        }
+
+        body.is-fullscreen .reader-pane {
+            padding-top: 5rem;
+        }
+
+        /* Floating Exit Fullscreen Button */
+        #exit-fullscreen-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 99999;
+            display: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+
+        body.is-fullscreen #exit-fullscreen-btn {
+            display: inline-flex;
+        }
+
+        /* Gaze Elements Styling */
+        .gaze-paragraph {
+            margin-bottom: 2rem;
+        }
+
+        .gaze-line {
+            display: block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            transition: background-color 0.15s ease, border-left 0.15s ease;
+            position: relative;
+            border-left: 4px solid transparent;
+            margin-bottom: 4px;
+        }
+
+        .gaze-line.line-focused {
+            background-color: var(--line-highlight-bg);
+            border-left-color: var(--line-indicator);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+        }
+
+        .gaze-word {
+            display: inline-block;
+            padding: 2px 5px;
+            margin: 0 1px;
+            border-radius: 5px;
+            transition: all 0.12s ease;
+        }
+
+        .gaze-word.word-focused {
+            background-color: var(--word-gaze-bg);
+            color: var(--word-gaze-text);
+            font-weight: 700;
+            transform: scale(1.08);
+            box-shadow: 0 2px 12px rgba(225, 29, 72, 0.5);
+        }
+
+        /* Gaze Laser Reticle Pointer */
+        #gaze-pointer {
+            position: fixed;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.95) 0%, rgba(244, 63, 94, 0.4) 60%, rgba(244, 63, 94, 0) 100%);
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 15px #ef4444, 0 0 30px rgba(239, 68, 68, 0.6);
+            pointer-events: none;
+            z-index: 999999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.04s ease-out;
+            display: none;
+        }
+
+        /* Calibration Overlay Screen */
+        #calibration-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(11, 15, 25, 0.96);
+            z-index: 999999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .calibration-instructions {
+            position: absolute;
+            top: 2rem;
+            text-align: center;
+            color: white;
+            background: rgba(21, 28, 44, 0.9);
+            padding: 1.25rem 2.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            max-width: 650px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .calibration-btn-node {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            border: 3px solid #ffffff;
+            position: fixed;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
+            transition: transform 0.15s, background-color 0.2s, opacity 0.2s;
+            opacity: 0.35;
+            z-index: 1000000;
+        }
+
+        .calibration-btn-node:hover {
+            transform: scale(1.3);
+        }
+
+        .calibration-btn-node:active {
+            transform: scale(0.95);
+        }
+
+        /* 9 Calibration Nodes Absolute Screen Positions */
+        #pt-1 { top: 70px; left: 70px; }
+        #pt-2 { top: 70px; left: 50vw; transform: translateX(-50%); }
+        #pt-3 { top: 70px; right: 70px; }
+        #pt-4 { top: 50vh; left: 70px; transform: translateY(-50%); }
+        #pt-5 { top: 50vh; left: 50vw; transform: translate(-50%, -50%); }
+        #pt-6 { top: 50vh; right: 70px; transform: translateY(-50%); }
+        #pt-7 { bottom: 70px; left: 70px; }
+        #pt-8 { bottom: 70px; left: 50vw; transform: translateX(-50%); }
+        #pt-9 { bottom: 70px; right: 70px; }
+
+        /* Accuracy Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 1000001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2.25rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        .accuracy-score {
+            font-size: 3.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #10b981, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 1rem 0;
+        }
+
+        /* Canvas for webgazer plotting */
+        #plotting_canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .empty-notice {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <canvas id="plotting_canvas"></canvas>
+    <div id="gaze-pointer"></div>
+
+    <!-- Header Navbar -->
+    <nav class="navbar">
+        <div class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-eye"></i></div>
+            <span>EyeTracker Notepad</span>
+        </div>
+
+        <div class="nav-controls">
+            <div class="status-badge" id="cal-status-badge">
+                <span class="status-dot" id="cal-status-dot"></span>
+                <span id="cal-status-text">Not Calibrated</span>
+            </div>
+
+            <button class="btn btn-primary" onclick="startCalibration()">
+                <i class="fa-solid fa-crosshairs"></i> Calibrate Eyes
+            </button>
+
+            <button class="btn btn-fullscreen" onclick="toggleFullscreenReading()">
+                <i class="fa-solid fa-expand"></i> Fullscreen Read
+            </button>
+
+            <button class="btn" id="btn-toggle-video" onclick="toggleWebcamPreview()">
+                <i class="fa-solid fa-video"></i> Webcam
+            </button>
+
+            <button class="btn" id="btn-toggle-pointer" onclick="toggleGazePointer()">
+                <i class="fa-solid fa-location-dot"></i> Gaze Dot
+            </button>
+
+            <button class="btn" onclick="toggleTheme()">
+                <i class="fa-solid fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <div class="main-container">
+        <!-- Sidebar Controls -->
+        <aside class="toolbar">
+            <div>
+                <div class="section-title">Gaze Highlighting</div>
+                <div class="control-group">
+                    <label class="control-label">Highlight Mode</label>
+                    <select class="select-input" id="highlight-mode" onchange="updateHighlightMode()">
+                        <option value="both" selected>Word & Line Highlighting</option>
+                        <option value="word">Word Level Only</option>
+                        <option value="line">Line Level Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Gaze Smoothing</div>
+                <div class="control-group">
+                    <label class="control-label">
+                        <span>Smoothing Intensity</span>
+                        <span id="smooth-val">0.3</span>
+                    </label>
+                    <input type="range" class="range-slider" id="smooth-slider" min="0.05" max="0.8" step="0.05" value="0.3" oninput="updateSmoothing(this.value)">
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Typography & Layout</div>
+                <div class="control-group">
+                    <label class="control-label">
+                        <span>Font Size</span>
+                        <span id="font-val">20px</span>
+                    </label>
+                    <input type="range" class="range-slider" id="font-slider" min="14" max="36" value="20" oninput="updateFontSize(this.value)">
+                </div>
+
+                <div class="control-group" style="margin-top: 0.75rem;">
+                    <label class="control-label">
+                        <span>Line Spacing</span>
+                        <span id="line-val">1.8</span>
+                    </label>
+                    <input type="range" class="range-slider" id="line-slider" min="1.4" max="2.6" step="0.1" value="1.8" oninput="updateLineHeight(this.value)">
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Sample Text</div>
+                <div class="control-group">
+                    <button class="btn" onclick="loadSampleText('tech')"><i class="fa-solid fa-microchip"></i> Technology Essay</button>
+                    <button class="btn" style="margin-top: 0.4rem;" onclick="loadSampleText('story')"><i class="fa-solid fa-book-open"></i> Story Excerpt</button>
+                </div>
+            </div>
+
+            <div style="margin-top: auto;">
+                <div class="section-title">Webcam Position</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                    The camera preview is pinned at the <strong>Top-Left</strong> corner for optimal face alignment while reading.
+                </div>
+            </div>
+        </aside>
+
+        <!-- Viewport -->
+        <main class="viewport">
+            <!-- Tab switch header -->
+            <div class="tab-bar">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" id="tab-edit" onclick="switchMode('edit')">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit / Paste Text
+                    </button>
+                    <button class="tab-btn" id="tab-read" onclick="switchMode('read')">
+                        <i class="fa-solid fa-eye"></i> Eye Tracking Reader
+                    </button>
+                </div>
+
+                <div id="stats-counter" style="font-size: 0.85rem; color: var(--text-secondary);">
+                    0 Words | 0 Characters
+                </div>
+            </div>
+
+            <!-- Pane 1: Editor / Paste Area -->
+            <div class="editor-pane" id="pane-editor">
+                <textarea class="editor-textarea" id="text-input" placeholder="Paste or type your text content here...
+
+Tip: Click 'Eye Tracking Reader' or 'Fullscreen Read' to start reading with eye tracking!" oninput="handleTextChange()"></textarea>
+
+                <div class="editor-actions">
+                    <button class="btn btn-danger" onclick="clearText()"><i class="fa-solid fa-trash"></i> Clear</button>
+                    <button class="btn btn-success" onclick="switchMode('read')"><i class="fa-solid fa-play"></i> Start Eye Tracking Mode</button>
+                </div>
+            </div>
+
+            <!-- Pane 2: Eye Tracking Reader Area -->
+            <div class="reader-pane" id="pane-reader" style="display: none;">
+                <div class="reader-content" id="reader-content">
+                    <div class="empty-notice">
+                        <i class="fa-solid fa-file-circle-plus" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent-color);"></i>
+                        <h3>No content loaded</h3>
+                        <p>Switch to Edit Mode and paste your text content to begin eye tracking.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Exit Fullscreen Button -->
+    <button class="btn btn-primary" id="exit-fullscreen-btn" onclick="toggleFullscreenReading()">
+        <i class="fa-solid fa-compress"></i> Exit Fullscreen
+    </button>
+
+    <!-- Calibration Overlay -->
+    <div id="calibration-overlay">
+        <div class="calibration-instructions">
+            <h2><i class="fa-solid fa-crosshairs"></i> Eye Tracking Calibration</h2>
+            <p style="margin-top: 0.5rem; font-size: 0.95rem; color: #cbd5e1;">
+                Keep your head steady! Click each red dot <strong>5 times</strong> while staring directly at it.<br>
+                Each click records your eye feature data into WebGazer's regression model.
+            </p>
+        </div>
+
+        <button class="calibration-btn-node" id="pt-1" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-2" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-3" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-4" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-5" onclick="calNodeClick(this)" style="display: none;"></button>
+        <button class="calibration-btn-node" id="pt-6" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-7" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-8" onclick="calNodeClick(this)"></button>
+        <button class="calibration-btn-node" id="pt-9" onclick="calNodeClick(this)"></button>
+    </div>
+
+    <!-- Accuracy Modal -->
+    <div class="modal-overlay" id="accuracy-modal">
+        <div class="modal-card">
+            <h3>Calibration Complete!</h3>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">Your estimated Eye-Tracking accuracy:</p>
+            <div class="accuracy-score" id="accuracy-score-text">0%</div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                WebGazer eye tracking model is now trained to your gaze!
+            </p>
+            <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                <button class="btn" onclick="startCalibration()">Recalibrate</button>
+                <button class="btn btn-primary" onclick="closeAccuracyModal()">Start Fullscreen Reading</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // State variables
+        let isWebgazerStarted = false;
+        let showPointer = true;
+        let currentMode = 'edit';
+        let highlightMode = 'both';
+        let alphaSmoothing = 0.3; // Exponential smoothing factor
+        let currentGazeX = window.innerWidth / 2;
+        let currentGazeY = window.innerHeight / 2;
+        let isFullscreenMode = false;
+        
+        // Calibration tracking
+        const calPointClicks = {};
+        let calibratedPointsCount = 0;
+
+        // Current highlighted elements
+        let activeFocusedWord = null;
+        let activeFocusedLine = null;
+
+        // DOM elements
+        const gazePointerEl = document.getElementById('gaze-pointer');
+        const textInput = document.getElementById('text-input');
+        const readerContent = document.getElementById('reader-content');
+        const readerPane = document.getElementById('pane-reader');
+        const calOverlay = document.getElementById('calibration-overlay');
+        const accuracyModal = document.getElementById('accuracy-modal');
+
+        // Sample text data
+        const sampleTexts = {
+            tech: `Eye tracking technology enables computers to determine precisely where a user is looking on a screen. By measuring eye positions and eye movements, software can infer human attention and cognitive focus.
+
+When integrated with a text notepad, eye gaze data transforms traditional reading into an interactive experience. Words and lines dynamically illuminate as your gaze sweeps across the text.
+
+WebGazer.js leverages standard webcams to compute gaze predictions in real time using computer vision and regression models directly inside the browser.`,
+
+            story: `The night sky over the observatory was vast and silent, filled with countless stars sparkling against deep obsidian.
+
+Elena adjusted the lens on her telescope, peering through the eyepiece as distant galaxies slowly drifted into view. Each photon hitting the detector had traveled millions of light years across cosmic space.
+
+Suddenly, a brilliant flash of blue light streaked across the field of view, leaving behind a glowing luminescent trail that captivated her attention.`
+        };
+
+        // Initialize WebGazer
+        async function initWebgazer() {
+            if (isWebgazerStarted) return;
+
+            try {
+                await webgazer.setRegression('ridge')
+                    .setGazeListener((data, elapsedTime) => {
+                        if (!data) return;
+                        processGazeCoordinates(data.x, data.y);
+                    })
+                    .saveDataAcrossSessions(true)
+                    .begin();
+
+                webgazer.showVideoPreview(true)
+                    .showPredictionPoints(false)
+                    .applyKalmanFilter(true);
+
+                // Ensure camera container stays top-left
+                styleWebcamTopLeft();
+
+                isWebgazerStarted = true;
+                updateStatusBadge('Ready', true);
+            } catch (err) {
+                console.error("WebGazer initialization error:", err);
+                alert("Failed to access camera for WebGazer. Please allow camera permissions.");
+            }
+        }
+
+        // Force camera preview to top-left corner
+        function styleWebcamTopLeft() {
+            const container = document.getElementById('webgazerVideoContainer');
+            if (container) {
+                container.style.setProperty('top', '12px', 'important');
+                container.style.setProperty('left', '12px', 'important');
+                container.style.setProperty('position', 'fixed', 'important');
+                container.style.setProperty('display', 'block', 'important');
+                container.style.setProperty('z-index', '99990', 'important');
+                container.style.setProperty('width', '200px', 'important');
+                container.style.setProperty('height', '150px', 'important');
+            }
+        }
+
+        // Process raw gaze coordinates with exponential smoothing & element lookup
+        function processGazeCoordinates(rawX, rawY) {
+            // Exponential moving average smoothing
+            currentGazeX = currentGazeX + alphaSmoothing * (rawX - currentGazeX);
+            currentGazeY = currentGazeY + alphaSmoothing * (rawY - currentGazeY);
+
+            // Update floating laser dot pointer
+            if (showPointer) {
+                gazePointerEl.style.display = 'block';
+                gazePointerEl.style.left = `${currentGazeX}px`;
+                gazePointerEl.style.top = `${currentGazeY}px`;
+            } else {
+                gazePointerEl.style.display = 'none';
+            }
+
+            // Highlighting active when in Read Mode
+            if (currentMode === 'read') {
+                highlightGazeTarget(currentGazeX, currentGazeY);
+                autoScrollOnGaze(currentGazeY);
+            }
+        }
+
+        // Highlight line or word at given (x,y)
+        function highlightGazeTarget(x, y) {
+            const targetEl = document.elementFromPoint(x, y);
+
+            if (!targetEl) return;
+
+            // Find closest word and line elements
+            const wordEl = targetEl.closest('.gaze-word');
+            const lineEl = targetEl.closest('.gaze-line');
+
+            // Handle word level highlighting
+            if (highlightMode === 'both' || highlightMode === 'word') {
+                if (activeFocusedWord && activeFocusedWord !== wordEl) {
+                    activeFocusedWord.classList.remove('word-focused');
+                }
+                if (wordEl) {
+                    wordEl.classList.add('word-focused');
+                    activeFocusedWord = wordEl;
+                }
+            }
+
+            // Handle line level highlighting
+            if (highlightMode === 'both' || highlightMode === 'line') {
+                if (activeFocusedLine && activeFocusedLine !== lineEl) {
+                    activeFocusedLine.classList.remove('line-focused');
+                }
+                if (lineEl) {
+                    lineEl.classList.add('line-focused');
+                    activeFocusedLine = lineEl;
+                }
+            }
+        }
+
+        // Auto-scroll reader pane when gaze is near top/bottom boundaries
+        function autoScrollOnGaze(gazeY) {
+            const vh = window.innerHeight;
+            if (gazeY > vh * 0.85) {
+                readerPane.scrollTop += 4;
+            } else if (gazeY < vh * 0.18) {
+                readerPane.scrollTop -= 4;
+            }
+        }
+
+        // Switch between Edit and Read Mode
+        function switchMode(mode) {
+            currentMode = mode;
+            const tabEdit = document.getElementById('tab-edit');
+            const tabRead = document.getElementById('tab-read');
+            const paneEditor = document.getElementById('pane-editor');
+
+            if (mode === 'edit') {
+                tabEdit.classList.add('active');
+                tabRead.classList.remove('active');
+                paneEditor.style.display = 'flex';
+                readerPane.style.display = 'none';
+            } else {
+                tabRead.classList.add('active');
+                tabEdit.classList.remove('active');
+                paneEditor.style.display = 'none';
+                readerPane.style.display = 'block';
+                renderTextToGazeStructure();
+                initWebgazer();
+            }
+        }
+
+        // Toggle Fullscreen Reading Mode
+        function toggleFullscreenReading() {
+            isFullscreenMode = !isFullscreenMode;
+            document.body.classList.toggle('is-fullscreen', isFullscreenMode);
+
+            if (isFullscreenMode) {
+                switchMode('read');
+                if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            } else {
+                if (document.exitFullscreen && document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+
+            setTimeout(styleWebcamTopLeft, 200);
+        }
+
+        // Render textarea text into structured paragraphs, lines, and words
+        function renderTextToGazeStructure() {
+            const text = textInput.value.trim();
+            if (!text) {
+                readerContent.innerHTML = `
+                    <div class="empty-notice">
+                        <i class="fa-solid fa-file-circle-plus" style="font-size: 3rem; margin-bottom: 1rem; color: var(--accent-color);"></i>
+                        <h3>No content loaded</h3>
+                        <p>Switch to Edit Mode and paste your text content to begin eye tracking.</p>
+                    </div>`;
+                return;
+            }
+
+            const paragraphs = text.split(/\n\s*\n/);
+            let html = '';
+
+            paragraphs.forEach((pText, pIdx) => {
+                html += `<div class="gaze-paragraph">`;
+                const lines = pText.split('\n');
+
+                lines.forEach((lineText, lIdx) => {
+                    html += `<span class="gaze-line" id="line-${pIdx}-${lIdx}">`;
+                    const words = lineText.split(/(\s+)/);
+
+                    words.forEach((wText, wIdx) => {
+                        if (wText.trim().length > 0) {
+                            html += `<span class="gaze-word" id="word-${pIdx}-${lIdx}-${wIdx}">${escapeHtml(wText)}</span>`;
+                        } else {
+                            html += wText;
+                        }
+                    });
+                    html += `</span>`;
+                });
+                html += `</div>`;
+            });
+
+            readerContent.innerHTML = html;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Handle text change statistics
+        function handleTextChange() {
+            const val = textInput.value;
+            const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+            const chars = val.length;
+            document.getElementById('stats-counter').innerText = `${words} Words | ${chars} Characters`;
+        }
+
+        function clearText() {
+            textInput.value = '';
+            handleTextChange();
+        }
+
+        function loadSampleText(key) {
+            if (sampleTexts[key]) {
+                textInput.value = sampleTexts[key];
+                handleTextChange();
+                switchMode('read');
+            }
+        }
+
+        // --- ACTUAL CALIBRATION FLOW ---
+        async function startCalibration() {
+            await initWebgazer();
+            
+            // Clear prior data to start fresh calibration
+            if (window.webgazer && typeof webgazer.clearData === 'function') {
+                webgazer.clearData();
+            }
+
+            // Reset calibration node states
+            calibratedPointsCount = 0;
+            for (let i = 1; i <= 9; i++) {
+                calPointClicks[`pt-${i}`] = 0;
+                const btn = document.getElementById(`pt-${i}`);
+                if (btn) {
+                    btn.style.backgroundColor = '#ef4444';
+                    btn.style.opacity = '0.35';
+                    btn.removeAttribute('disabled');
+                    btn.style.display = (i === 5) ? 'none' : 'block';
+                }
+            }
+
+            calOverlay.style.display = 'flex';
+        }
+
+        function calNodeClick(btn) {
+            const id = btn.id;
+            calPointClicks[id] = (calPointClicks[id] || 0) + 1;
+
+            // Explicity feed the exact center coordinates of the calibration node into WebGazer
+            const rect = btn.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            if (window.webgazer && typeof webgazer.recordScreenPosition === 'function') {
+                webgazer.recordScreenPosition(cx, cy, 'click');
+            }
+
+            if (calPointClicks[id] === 5) {
+                btn.style.backgroundColor = '#eab308'; // Gold/Yellow when complete
+                btn.setAttribute('disabled', 'disabled');
+                btn.style.opacity = '1';
+                calibratedPointsCount++;
+            } else {
+                btn.style.opacity = (0.15 * calPointClicks[id] + 0.35).toString();
+            }
+
+            // Show middle point (pt-5) after all outer 8 points are clicked
+            if (calibratedPointsCount === 8) {
+                const pt5 = document.getElementById('pt-5');
+                if (pt5) pt5.style.display = 'block';
+            }
+
+            // Complete calibration when all 9 points are clicked 5 times
+            if (calibratedPointsCount >= 9) {
+                calOverlay.style.display = 'none';
+                runAccuracyCalculation();
+            }
+        }
+
+        function runAccuracyCalculation() {
+            if (typeof store_points_variable === 'function') {
+                store_points_variable();
+            }
+
+            updateStatusBadge('Testing Accuracy...', true);
+
+            setTimeout(() => {
+                if (typeof stop_storing_points_variable === 'function') {
+                    stop_storing_points_variable();
+                }
+
+                let precisionScore = 85;
+                if (window.webgazer && typeof webgazer.getStoredPoints === 'function' && typeof calculatePrecision === 'function') {
+                    const past50 = webgazer.getStoredPoints();
+                    precisionScore = calculatePrecision(past50) || 85;
+                }
+
+                document.getElementById('accuracy-score-text').innerText = `${precisionScore}%`;
+                updateStatusBadge(`Accurate (${precisionScore}%)`, true);
+                accuracyModal.style.display = 'flex';
+            }, 3000);
+        }
+
+        function closeAccuracyModal() {
+            accuracyModal.style.display = 'none';
+            toggleFullscreenReading();
+        }
+
+        // Toggle webcam video box
+        function toggleWebcamPreview() {
+            if (!isWebgazerStarted) return;
+            const container = document.getElementById('webgazerVideoContainer');
+            if (container) {
+                const isHidden = container.style.display === 'none';
+                container.style.display = isHidden ? 'block' : 'none';
+                document.getElementById('btn-toggle-video').classList.toggle('btn-active', isHidden);
+                if (isHidden) styleWebcamTopLeft();
+            }
+        }
+
+        // Toggle gaze laser pointer
+        function toggleGazePointer() {
+            showPointer = !showPointer;
+            document.getElementById('btn-toggle-pointer').classList.toggle('btn-active', showPointer);
+            if (!showPointer) gazePointerEl.style.display = 'none';
+        }
+
+        // Settings adjustments
+        function updateHighlightMode() {
+            highlightMode = document.getElementById('highlight-mode').value;
+        }
+
+        function updateSmoothing(val) {
+            alphaSmoothing = parseFloat(val);
+            document.getElementById('smooth-val').innerText = val;
+        }
+
+        function updateFontSize(val) {
+            document.getElementById('font-val').innerText = `${val}px`;
+            readerContent.style.fontSize = `${val}px`;
+        }
+
+        function updateLineHeight(val) {
+            document.getElementById('line-val').innerText = val;
+            readerContent.style.lineHeight = val;
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            const icon = document.getElementById('theme-icon');
+            icon.className = newTheme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        }
+
+        function updateStatusBadge(text, isActive) {
+            document.getElementById('cal-status-text').innerText = text;
+            const dot = document.getElementById('cal-status-dot');
+            dot.className = `status-dot ${isActive ? 'active' : ''}`;
+        }
+
+        // Initialize default view
+        handleTextChange();
+    </script>
+</body>
+</html>

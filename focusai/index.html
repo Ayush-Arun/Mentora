@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusAI — Real-Time AI Learning Intelligence</title>
+  <meta name="description" content="FocusAI helps teachers understand what students are struggling with during a live lesson and respond before students fall behind.">
+  <meta name="theme-color" content="#065f46">
+
+  <!-- Preconnect for fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/classroom.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- APP ROOT                                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ─── Connection Status Banner ─────────────────────────────────────────── -->
+  <div class="connection-banner" id="connectionBanner" role="status" aria-live="polite"></div>
+
+  <!-- ─── Toast Notification ───────────────────────────────────────────────── -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 1: AUTH (Sign In / Sign Up)
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div id="authView" class="view" role="main" aria-label="Authentication">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+
+      <!-- Brand -->
+      <div class="auth-brand">
+        <div class="auth-brand-logo" aria-hidden="true">🎯</div>
+        <div>
+          <div class="auth-brand-name">FocusAI</div>
+        </div>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="auth-tabs" role="tablist" aria-label="Auth mode">
+        <button class="auth-tab active" id="tabSignin" role="tab" aria-selected="true" aria-controls="signinPanel">Sign In</button>
+        <button class="auth-tab" id="tabSignup" role="tab" aria-selected="false" aria-controls="signupPanel">Sign Up</button>
+      </div>
+
+      <!-- ── Sign In Panel ───────────────────────────────────────────────── -->
+      <div id="signinPanel" role="tabpanel">
+        <h1 class="sr-only" id="authTitle">Welcome back to FocusAI</h1>
+
+        <form id="signinForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="signinEmail">Email</label>
+            <input
+              type="email"
+              id="signinEmail"
+              class="form-input"
+              placeholder="you@school.edu"
+              autocomplete="email"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signinPassword">Password</label>
+            <input
+              type="password"
+              id="signinPassword"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+          <button type="submit" class="btn-primary" id="signinBtn">
+            <span id="signinBtnLabel">Sign In</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- ── Sign Up Panel ───────────────────────────────────────────────── -->
+      <div id="signupPanel" role="tabpanel" style="display:none">
+        <h1 class="sr-only">Create your FocusAI account</h1>
+
+        <!-- Role selection — student or teacher -->
+        <div class="form-group">
+          <label class="form-label">I am a…</label>
+          <div class="role-selector" role="radiogroup" aria-label="Select your role">
+            <div class="role-card selected" id="roleTeacher" role="radio" aria-checked="true" tabindex="0" data-role="teacher">
+              <div class="role-card-icon" aria-hidden="true">👩‍🏫</div>
+              <div class="role-card-label">Teacher</div>
+            </div>
+            <div class="role-card" id="roleStudent" role="radio" aria-checked="false" tabindex="0" data-role="student">
+              <div class="role-card-icon" aria-hidden="true">🎓</div>
+              <div class="role-card-label">Student</div>
+            </div>
+          </div>
+        </div>
+
+        <form id="signupForm" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="signupFirst">First Name</label>
+              <input type="text" id="signupFirst" class="form-input" placeholder="Alex" autocomplete="given-name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="signupLast">Last Name</label>
+              <input type="text" id="signupLast" class="form-input" placeholder="Rivera" autocomplete="family-name" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signupEmail">Email</label>
+            <input type="email" id="signupEmail" class="form-input" placeholder="you@school.edu" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="signupPassword">Password</label>
+            <input type="password" id="signupPassword" class="form-input" placeholder="Min. 6 characters" autocomplete="new-password" required>
+          </div>
+          <button type="submit" class="btn-primary" id="signupBtn">
+            <span id="signupBtnLabel">Create Account</span>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 2: TEACHER DASHBOARD
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div id="teacherDashView" class="view" role="main" aria-label="Teacher Dashboard">
+    <header class="topbar">
+      <a class="topbar-brand" href="#" aria-label="FocusAI home">
+        <div class="topbar-brand-dot" aria-hidden="true">🎯</div>
+        FocusAI
+      </a>
+      <div class="topbar-right">
+        <div class="topbar-user" id="teacherUserMenu" role="button" aria-label="User menu" tabindex="0">
+          <div class="topbar-avatar" id="teacherAvatar" aria-hidden="true">T</div>
+          <div>
+            <div class="topbar-user-name" id="teacherName">Teacher</div>
+            <div class="topbar-user-role">Teacher</div>
+          </div>
+        </div>
+        <button class="btn-logout" id="teacherLogoutBtn" aria-label="Sign out">Sign Out</button>
+      </div>
+    </header>
+
+    <div class="dashboard-content">
+      <div>
+        <h1 class="section-heading">Your Classes</h1>
+        <p class="section-subheading">Create and manage your FocusAI classrooms</p>
+      </div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="btn-primary" id="createClassBtn" style="width:auto; padding:10px 24px;" aria-label="Create new class">
+          + New Class
+        </button>
+        <button class="btn-secondary" id="openUploadModalBtn" style="width:auto; padding:10px 24px; border: 1px solid var(--border);" aria-label="Upload materials">
+          📄 Upload Slides / Notes
+        </button>
+      </div>
+
+      <!-- Classes Grid -->
+      <div id="teacherClassesGrid" class="classes-grid stagger" aria-label="Your classes" aria-live="polite">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 3: STUDENT DASHBOARD
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div id="studentDashView" class="view" role="main" aria-label="Student Dashboard">
+    <header class="topbar">
+      <a class="topbar-brand" href="#" aria-label="FocusAI home">
+        <div class="topbar-brand-dot" aria-hidden="true">🎯</div>
+        FocusAI
+      </a>
+      <div class="topbar-right">
+        <div class="topbar-user" id="studentUserMenu" role="button" tabindex="0">
+          <div class="topbar-avatar" id="studentAvatar" aria-hidden="true">S</div>
+          <div>
+            <div class="topbar-user-name" id="studentName">Student</div>
+            <div class="topbar-user-role">Student</div>
+          </div>
+        </div>
+        <button class="btn-logout" id="studentLogoutBtn" aria-label="Sign out">Sign Out</button>
+      </div>
+    </header>
+
+    <div class="dashboard-content">
+      <div>
+        <h1 class="section-heading">Your Classes</h1>
+        <p class="section-subheading">Join live sessions and track your learning</p>
+      </div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="btn-primary" id="joinClassBtn" style="width:auto; padding:10px 24px;" aria-label="Join a class">
+          + Join Class
+        </button>
+        <button class="btn-secondary" id="studentMyInsightsBtn" style="width:auto; padding:10px 24px; border: 1px solid var(--border);" aria-label="My learning insights">
+          🌟 My Learning Insights
+        </button>
+      </div>
+
+      <!-- Student Classes Grid -->
+      <div id="studentClassesGrid" class="classes-grid stagger" aria-label="Enrolled classes" aria-live="polite">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 4: CLASSROOM — TEACHER (Phase 2)
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div id="classroomTeacherView" class="view" role="main" aria-label="Live Classroom — Teacher">
+    <!-- Implemented in Phase 2 -->
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--font-display);color:var(--text-muted)">
+      <div style="text-align:center">
+        <div style="font-size:3rem;margin-bottom:16px;">🏫</div>
+        <div style="font-size:1.2rem;font-weight:700;color:var(--color-primary)">Live Classroom</div>
+        <div style="font-size:0.875rem;margin-top:8px;">Phase 2 — Coming in the next session</div>
+        <button onclick="app.navigate('teacher')" style="margin-top:24px" class="btn-secondary">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       VIEW 5: CLASSROOM — STUDENT (Phase 2)
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <div id="classroomStudentView" class="view" role="main" aria-label="Live Classroom — Student">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--font-display);color:var(--text-muted)">
+      <div style="text-align:center">
+        <div style="font-size:3rem;margin-bottom:16px;">📚</div>
+        <div style="font-size:1.2rem;font-weight:700;color:var(--color-primary)">Student Classroom View</div>
+        <div style="font-size:0.875rem;margin-top:8px;">Phase 2 — Coming in the next session</div>
+        <button onclick="app.navigate('student')" style="margin-top:24px" class="btn-secondary">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODALS
+     ══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Create Class Modal -->
+<div class="modal-overlay" id="createClassModal" role="dialog" aria-modal="true" aria-labelledby="createClassTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="createClassTitle">Create New Class</h2>
+      <button class="modal-close" id="createClassClose" aria-label="Close">✕</button>
+    </div>
+    <form id="createClassForm" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="classNameInput">Class Name</label>
+        <input type="text" id="classNameInput" class="form-input" placeholder="e.g. Advanced Physics" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="classSubjectInput">Subject</label>
+        <input type="text" id="classSubjectInput" class="form-input" placeholder="e.g. Physics" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="classExpectedInput">Expected Students</label>
+        <input type="number" id="classExpectedInput" class="form-input" placeholder="30" min="1" max="500" value="30">
+      </div>
+      <button type="submit" class="btn-primary" id="createClassSubmitBtn">
+        <span id="createClassBtnLabel">Create Class</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Upload Material Modal -->
+<div class="modal-overlay" id="uploadMaterialModal" role="dialog" aria-modal="true" aria-labelledby="uploadMaterialTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="uploadMaterialTitle">Upload Teaching Materials</h2>
+      <button class="modal-close" id="uploadMaterialClose" aria-label="Close">✕</button>
+    </div>
+    <form id="uploadMaterialForm" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="uploadClassSelect">Target Class</label>
+        <select id="uploadClassSelect" class="form-input" required>
+          <option value="">Select a class…</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="materialFileInput">Presentation or Lecture Notes (PDF, PPTX, MD, TXT)</label>
+        <input type="file" id="materialFileInput" class="form-input" accept=".pdf,.pptx,.ppt,.txt,.md" required>
+      </div>
+      <button type="submit" class="btn-primary" id="uploadMaterialSubmitBtn">
+        <span id="uploadMaterialBtnLabel">Process & Extract Slides</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Join Class Modal -->
+<div class="modal-overlay" id="joinClassModal" role="dialog" aria-modal="true" aria-labelledby="joinClassTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="joinClassTitle">Join a Class</h2>
+      <button class="modal-close" id="joinClassClose" aria-label="Close">✕</button>
+    </div>
+    <p style="font-size:0.875rem;color:var(--text-muted);margin-bottom:20px;">
+      Enter the class code provided by your teacher.
+    </p>
+    <form id="joinClassForm" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="joinCodeInput">Class Code</label>
+        <input
+          type="text"
+          id="joinCodeInput"
+          class="form-input"
+          placeholder="e.g. MTH492"
+          maxlength="6"
+          style="text-transform:uppercase;font-family:var(--font-mono);font-size:1.2rem;letter-spacing:0.1em;text-align:center"
+          required
+        >
+      </div>
+      <button type="submit" class="btn-primary" id="joinClassSubmitBtn">
+        <span id="joinClassBtnLabel">Join Class</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script type="module" src="scripts/supabase-client.js"></script>
+<script type="module" src="scripts/app.js"></script>
+
+</body>
+</html>

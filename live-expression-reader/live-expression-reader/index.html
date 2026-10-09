@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemma AI Adaptive Document Reader & Facial Expression Intelligence</title>
+    <meta
+      name="description"
+      content="In-browser adaptive AI document reader powered by Gemma and facial expression & cognitive comprehension intelligence."
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js for in-browser PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <style>
+      body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+      .font-mono, code, kbd { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      kbd {
+        display: inline-block;
+        padding: 0.05rem 0.35rem;
+        font-size: 0.78em;
+        border: 1px solid rgb(64, 64, 64);
+        border-bottom-width: 2px;
+        border-radius: 0.25rem;
+        background: rgb(23, 23, 23);
+        color: rgb(229, 229, 229);
+      }
+      body.no-ai .ai-feature { display: none !important; }
+
+      /* Floating Gaze Reticle */
+      #gaze-reticle {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 24px;
+        height: 24px;
+        margin-left: -12px;
+        margin-top: -12px;
+        border-radius: 9999px;
+        pointer-events: none;
+        z-index: 9999;
+        border: 2px solid rgba(99, 102, 241, 0.9);
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0.05) 70%);
+        box-shadow: 0 0 16px rgba(99, 102, 241, 0.6);
+        transition: transform 0.05s ease-out;
+        will-change: transform;
+      }
+
+      /* Custom scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(23, 23, 23, 0.5);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(82, 82, 91, 0.7);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(113, 113, 122, 0.9);
+      }
+    </style>
+  </head>
+  <body class="bg-neutral-950 text-neutral-100 min-h-screen selection:bg-indigo-600 selection:text-white">
+    <!-- Floating Gaze Target Reticle -->
+    <div id="gaze-reticle" style="display: none;" aria-hidden="true">
+      <div class="absolute inset-1 rounded-full border border-white/50 animate-ping opacity-60"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div
+      id="notepad-toast"
+      class="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-neutral-900 border border-neutral-700 text-sm font-medium text-white shadow-2xl transition-all duration-300 opacity-0 translate-y-2 pointer-events-none flex items-center gap-2"
+    >
+      Notification
+    </div>
+
+    <main class="max-w-[1760px] mx-auto p-3 sm:p-5">
+      <!-- App Header -->
+      <header class="mb-4 flex items-center justify-between gap-4 flex-wrap border-b border-neutral-800/80 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-600/30 text-xl font-bold">
+            🧠
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Gemma AI Adaptive Document Intelligence
+              <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-semibold uppercase tracking-wider">
+                Gemma 4 Powered
+              </span>
+            </h1>
+            <p class="text-xs sm:text-sm text-neutral-400">
+              Reads your facial expressions & cognitive state to dynamically explain, simplify, or re-create complex documents.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <div id="gaze-hud-status" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Facial Intelligence Online
+          </div>
+          <div id="gaze-hud-target" class="px-2.5 py-1 rounded-full text-xs font-mono bg-neutral-900 text-neutral-300 border border-neutral-800">
+            Document Active
+          </div>
+          <button
+            id="help-toggle"
+            class="px-3 py-1.5 rounded-lg border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-900 text-xs font-medium flex items-center gap-1.5 transition-colors"
+            aria-label="Open help"
+          >
+            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-indigo-600/30 text-indigo-300 text-[10px] font-bold">?</span>
+            Help Guide
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Two-Column Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- MIDDLE / MAIN WORKSPACE: AI Chat Box & Document Reader (7 cols) -->
+        <div class="lg:col-span-7 xl:col-span-7 space-y-4">
+          
+          <!-- Document Reader & Gemma AI Chat Card -->
+          <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 shadow-2xl p-4 sm:p-5 flex flex-col">
+            
+            <!-- Workspace Tabs -->
+            <div class="flex items-center justify-between border-b border-neutral-800/80 pb-3 mb-3 gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 p-1 rounded-xl bg-neutral-950 border border-neutral-800">
+                <button
+                  id="tab-btn-reader"
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-md transition-all flex items-center gap-1.5"
+                >
+                  📄 Document Reader
+                </button>
+                <button
+                  id="tab-btn-adapted"
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:bg-neutral-800 transition-all flex items-center gap-1.5"
+                >
+                  ✨ Adaptive Re-Created Doc
+                </button>
+                <button
+                  id="tab-btn-chat"
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:bg-neutral-800 transition-all flex items-center gap-1.5"
+                >
+                  💬 Gemma AI Discussion
+                </button>
+                <button
+                  id="tab-btn-settings"
+                  class="px-3 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:bg-neutral-800 transition-all flex items-center gap-1"
+                >
+                  ⚙️ Model Setup
+                </button>
+              </div>
+
+              <!-- Doc Stats -->
+              <div class="flex items-center gap-2 text-xs font-mono text-neutral-400">
+                <span id="doc-word-count" class="px-2.5 py-1 rounded bg-neutral-950 border border-neutral-800">0 words</span>
+              </div>
+            </div>
+
+            <!-- Action Toolbar (File Upload, Sample Docs, Re-create) -->
+            <div class="flex items-center justify-between gap-2 pb-3 mb-2 border-b border-neutral-800/80 flex-wrap">
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- File Upload -->
+                <input id="doc-file-input" type="file" accept=".pdf,.txt,.md,.doc,.docx" class="hidden" />
+                <button
+                  id="doc-upload-btn"
+                  class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all"
+                  title="Upload PDF or text file"
+                >
+                  📁 Insert / Upload PDF
+                </button>
+                <button
+                  id="doc-sample-btn"
+                  class="px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium flex items-center gap-1.5 transition-all"
+                  title="Cycle sample technical documents"
+                >
+                  📑 Sample Papers
+                </button>
+                <button
+                  id="doc-recreate-btn"
+                  class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-violet-600/20 transition-all"
+                  title="Re-create document with Gemma based on your understanding"
+                >
+                  ⚡ Re-Create with Gemma
+                </button>
+              </div>
+
+              <div class="flex items-center gap-1.5 text-xs text-neutral-400">
+                <span class="text-neutral-500">Document:</span>
+                <span id="doc-title" class="font-semibold text-neutral-200 truncate max-w-[220px]">
+                  Quantum Entanglement
+                </span>
+              </div>
+            </div>
+
+            <!-- REAL-TIME FACIAL COMPREHENSION HUD -->
+            <div class="p-3 rounded-xl bg-neutral-950/80 border border-neutral-800/80 mb-3 flex items-center justify-between gap-4 flex-wrap">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-sm font-bold text-indigo-300">
+                  👁️
+                </div>
+                <div>
+                  <div class="text-[10px] font-mono uppercase tracking-wider text-neutral-500 font-bold">
+                    Facial Comprehension & Understanding
+                  </div>
+                  <div id="hud-comp-status" class="text-xs font-bold text-emerald-400 flex items-center mt-0.5">
+                    Reading Steady
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gauge -->
+              <div class="flex items-center gap-3 min-w-[200px]">
+                <div class="flex-1">
+                  <div class="flex justify-between text-[11px] mb-1 font-mono text-neutral-400">
+                    <span>Comprehension Index</span>
+                    <span id="hud-comp-score" class="font-bold text-indigo-300">85%</span>
+                  </div>
+                  <div class="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                    <div id="hud-comp-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-300" style="width: 85%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Confusion Alert Banner (appears automatically if user looks confused) -->
+            <div id="doc-confusion-banner" class="hidden mb-3 p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs text-rose-200 flex items-center justify-between gap-3 animate-pulse">
+              <div class="flex items-center gap-2">
+                <span class="text-rose-400 text-lg">💡</span>
+                <span><strong>Struggling with this concept?</strong> Your facial expression indicates confusion. Let Gemma re-create and simplify this text for you!</span>
+              </div>
+              <button
+                id="doc-recreate-banner-btn"
+                class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 transition-all shadow-md"
+              >
+                Re-Create Now
+              </button>
+            </div>
+
+            <!-- TAB 1: Document Reader Panel -->
+            <div id="panel-reader" class="space-y-3">
+              <div
+                id="doc-paragraphs-container"
+                class="min-h-[420px] max-h-[580px] overflow-y-auto space-y-3 p-2 rounded-xl bg-neutral-950/40 border border-neutral-800/40"
+              >
+                <!-- Populated dynamically with paragraphs -->
+              </div>
+            </div>
+
+            <!-- TAB 2: Adaptive Re-Created Doc Panel -->
+            <div id="panel-adapted" class="hidden space-y-3">
+              <div
+                id="adapted-doc-content"
+                class="min-h-[420px] max-h-[580px] overflow-y-auto p-5 rounded-xl bg-neutral-950/70 border border-neutral-800 leading-relaxed text-sm text-neutral-200"
+              >
+                <!-- Populated dynamically with Gemma re-created markdown -->
+              </div>
+            </div>
+
+            <!-- TAB 3: Gemma AI Chat Discussion Panel -->
+            <div id="panel-chat" class="hidden flex flex-col space-y-3">
+              <!-- Chat Messages Container -->
+              <div
+                id="ai-chat-messages"
+                class="min-h-[380px] max-h-[480px] overflow-y-auto space-y-3 p-3 rounded-xl bg-neutral-950/70 border border-neutral-800/80"
+              >
+                <!-- Dynamic messages -->
+              </div>
+
+              <!-- Quick Prompt Chips -->
+              <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <button
+                  type="button"
+                  data-quick-prompt="Explain the parts where I looked confused in simple terms."
+                  class="px-2.5 py-1 rounded-full bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 text-[11px] whitespace-nowrap transition-colors border border-neutral-700/60"
+                >
+                  💡 Explain where I looked confused
+                </button>
+                <button
+                  type="button"
+                  data-quick-prompt="Give me a simple real-world analogy for this concept."
+                  class="px-2.5 py-1 rounded-full bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 text-[11px] whitespace-nowrap transition-colors border border-neutral-700/60"
+                >
+                  🌟 Give real-world analogy
+                </button>
+                <button
+                  type="button"
+                  data-quick-prompt="Re-create this document for high school understanding."
+                  class="px-2.5 py-1 rounded-full bg-neutral-800/80 hover:bg-neutral-700 text-neutral-300 text-[11px] whitespace-nowrap transition-colors border border-neutral-700/60"
+                >
+                  🎓 Simplify for beginner level
+                </button>
+              </div>
+
+              <!-- Chat Input Form -->
+              <form id="ai-chat-form" class="flex gap-2 items-stretch">
+                <input
+                  id="ai-chat-input"
+                  type="text"
+                  placeholder="Ask Gemma 4 anything about this document or your comprehension…"
+                  class="flex-1 px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                  autocomplete="off"
+                />
+                <button
+                  type="submit"
+                  class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5"
+                >
+                  <span>Send</span>
+                  <span>→</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- TAB 4: Gemma Model Settings Panel -->
+            <div id="panel-settings" class="hidden p-4 rounded-xl bg-neutral-950/80 border border-neutral-800 space-y-4">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                ⚙️ Local Gemma Model Configuration
+              </h3>
+              <p class="text-xs text-neutral-400">
+                Connect your local Gemma model (via Ollama, LM Studio, vLLM, or any local OpenAI-compatible inference server).
+              </p>
+
+              <div class="space-y-3 text-xs">
+                <div>
+                  <label class="block text-neutral-300 font-semibold mb-1">Inference Endpoint URL:</label>
+                  <input
+                    id="gemma-endpoint-input"
+                    type="text"
+                    value="http://localhost:11434"
+                    placeholder="http://localhost:11434 (Ollama) or http://localhost:1234/v1"
+                    class="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-100 font-mono text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                  <span class="text-neutral-500 text-[11px]">Default for Ollama is http://localhost:11434. For LM Studio use http://localhost:1234/v1.</span>
+                </div>
+
+                <div>
+                  <label class="block text-neutral-300 font-semibold mb-1">Model Name:</label>
+                  <input
+                    id="gemma-model-input"
+                    type="text"
+                    value="gemma"
+                    placeholder="gemma, gemma2, gemma:7b, gemma4"
+                    class="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-100 font-mono text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                  <span class="text-neutral-500 text-[11px]">Name of your installed Gemma model (e.g. gemma, gemma4, gemma2:9b).</span>
+                </div>
+
+                <div class="flex items-center gap-3 pt-2">
+                  <button
+                    id="gemma-save-settings"
+                    type="button"
+                    class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                  >
+                    Save Settings
+                  </button>
+                  <button
+                    id="gemma-test-conn"
+                    type="button"
+                    class="px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium"
+                  >
+                    Test Connection
+                  </button>
+                  <span id="gemma-conn-status" class="text-xs font-mono text-neutral-400"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Workspace Footer Hint -->
+            <div class="mt-3 pt-2 border-t border-neutral-800/60 text-xs text-neutral-500 flex items-center justify-between gap-2 flex-wrap">
+              <span>💡 Gaze focus & facial expressions (FACS AU4/AU7) continuously determine your comprehension level.</span>
+              <span class="font-mono text-neutral-400">Upload any PDF to begin adaptive reading</span>
+            </div>
+
+          </section>
+
+          <!-- Legacy elements preserved for compatibility -->
+          <div class="hidden">
+            <div id="explanation"></div>
+            <form id="chat-form">
+              <input id="chat-input" />
+              <button id="chat-send"></button>
+            </form>
+            <button id="summarize-session"></button>
+            <button id="discuss-recording"></button>
+            <input id="window-slider" type="range" />
+            <span id="window-value"></span>
+            <div id="personal-calib-panel"></div>
+            <button id="personal-calib-toggle"></button>
+            <div id="personal-calib-grid"></div>
+            <input id="storage-enabled" type="checkbox" />
+            <span id="storage-status"></span>
+            <button id="storage-clear"></button>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Camera (Top Right) & Features Displayed Below Camera (5 cols) -->
+        <div class="lg:col-span-5 xl:col-span-5 space-y-4">
+          
+          <!-- TOP RIGHT: Camera Video Container -->
+          <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 shadow-2xl p-3.5 sm:p-4">
+            <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-neutral-800">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                <span class="text-xs font-bold uppercase tracking-wider text-neutral-300">
+                  Live Camera Feed
+                </span>
+              </div>
+              <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                Iris & Emotion Tracking
+              </span>
+            </div>
+
+            <!-- Video Frame -->
+            <div
+              id="video-container"
+              class="relative rounded-xl overflow-hidden bg-black shadow-inner ring-1 ring-neutral-800 w-full"
+              style="aspect-ratio: 16 / 9;"
+            >
+              <video
+                id="webcam"
+                class="w-full h-full object-contain scale-x-[-1]"
+                autoplay
+                muted
+                playsinline
+              ></video>
+              <canvas
+                id="overlay"
+                class="absolute inset-0 w-full h-full pointer-events-none object-contain scale-x-[-1]"
+              ></canvas>
+
+              <!-- Personal Calibration Overlay -->
+              <div
+                id="personal-calib-overlay"
+                class="absolute inset-0 hidden flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+              >
+                <div class="bg-neutral-950/95 border-2 border-rose-500 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-2 max-w-[90%] text-center">
+                  <div class="text-rose-400 text-xs font-bold tracking-widest uppercase">Recording Template</div>
+                  <div class="text-neutral-400 text-xs">Show your</div>
+                  <div id="personal-calib-emotion" class="text-3xl font-bold text-white capitalize">happy</div>
+                  <div class="text-neutral-400 text-xs">face — hold steady</div>
+                  <div id="personal-calib-countdown" class="text-3xl font-mono text-rose-300 my-1">3</div>
+                  <div class="w-full h-1.5 bg-neutral-800 rounded overflow-hidden">
+                    <div id="personal-calib-progress" class="h-full bg-rose-500" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Loading spinner -->
+              <div
+                id="loading"
+                class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm text-sm gap-3 z-30"
+              >
+                <svg class="animate-spin h-6 w-6 text-indigo-400" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"></circle>
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                </svg>
+                <span id="loading-msg" class="font-medium text-neutral-200">Click Start below to begin webcam…</span>
+              </div>
+            </div>
+
+            <!-- Camera Controls Bar -->
+            <div class="mt-3 flex items-center gap-2 flex-wrap">
+              <button
+                id="pause"
+                class="flex-1 min-w-[90px] px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+              >
+                Start Camera
+              </button>
+              <button
+                id="recalibrate"
+                class="px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium transition-all"
+                title="Recalibrate neutral resting baseline (3s)"
+              >
+                Recalibrate
+              </button>
+              <button
+                id="explain"
+                class="ai-feature px-3 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-medium transition-all"
+              >
+                Why?
+              </button>
+              <button
+                id="record"
+                class="px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs flex items-center gap-1.5 transition-all"
+                title="Record session data"
+              >
+                <span id="record-dot" class="w-2 h-2 rounded-full bg-rose-500 hidden"></span>
+                <span id="record-label">Record</span>
+              </button>
+              <button
+                id="export"
+                class="px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs transition-all"
+                title="Export session data as JSON"
+              >
+                Export
+              </button>
+            </div>
+          </section>
+
+          <!-- FEATURES DISPLAYED BELOW THE CAMERA (BIGGER & HIGH VISIBILITY) -->
+          <div id="features-panel" class="space-y-4">
+            
+            <!-- FEATURE CARD 1: PRIMARY EMOTION & BREAKDOWN (BIG!) -->
+            <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 p-4 sm:p-5 shadow-2xl">
+              <div class="flex items-center justify-between mb-3 border-b border-neutral-800 pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  Primary Emotion Analysis
+                </span>
+                <span class="text-[11px] font-mono text-neutral-500">AffectNet 8-Class</span>
+              </div>
+
+              <!-- Giant Emotion Readout Banner -->
+              <div class="p-4 rounded-xl bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950 border border-neutral-800/80 flex items-center justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                  <span id="dash-emotion-icon" class="text-4xl sm:text-5xl leading-none">
+                    🙂
+                  </span>
+                  <div>
+                    <div id="dash-emotion-name" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white capitalize">
+                      Neutral
+                    </div>
+                    <div id="dash-compound-badge" class="hidden mt-1 inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Compound
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-right">
+                  <div class="text-xs text-neutral-400 font-medium">Confidence</div>
+                  <div id="dash-emotion-pct" class="text-3xl sm:text-4xl font-extrabold font-mono text-indigo-400 tabular-nums">
+                    --%
+                  </div>
+                </div>
+              </div>
+
+              <!-- All 8 Emotion Bars (Bigger & Clear) -->
+              <div class="space-y-2" id="dash-emotion-bars">
+                <!-- Populated dynamically with large visible bars -->
+              </div>
+            </section>
+
+            <!-- FEATURE CARD 2: REAL-TIME GAZE & EYE TRACKING RADAR -->
+            <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 p-4 shadow-2xl">
+              <div class="flex items-center justify-between mb-3 border-b border-neutral-800 pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
+                  👁️ Real-Time Eye & Gaze Radar
+                </span>
+                <span id="dash-gaze-coords" class="text-[11px] font-mono text-indigo-400">
+                  X: 50% · Y: 50%
+                </span>
+              </div>
+
+              <!-- Target Status -->
+              <div class="p-3 rounded-xl bg-neutral-950 border border-neutral-800/80 mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-[11px] text-neutral-500 uppercase tracking-wider font-semibold">Current Gaze Target</div>
+                  <div id="dash-gaze-status" class="text-base font-bold text-emerald-400 mt-0.5">
+                    Reading Document
+                  </div>
+                </div>
+                <div id="dash-gaze-target" class="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-300 font-bold">
+                  📍 Section --
+                </div>
+              </div>
+
+              <!-- Attention & Eye Openness Gauges -->
+              <div class="grid grid-cols-2 gap-3 mb-2">
+                <div class="p-2.5 rounded-xl bg-neutral-950 border border-neutral-800/80">
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-neutral-400 font-medium">Reading Focus</span>
+                    <span id="dash-gaze-attn-pct" class="font-mono font-bold text-indigo-300">80%</span>
+                  </div>
+                  <div class="w-full h-2 bg-neutral-800 rounded-full overflow-hidden">
+                    <div id="dash-gaze-attn-bar" class="h-full bg-indigo-500 rounded-full transition-all duration-150" style="width: 80%"></div>
+                  </div>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-neutral-950 border border-neutral-800/80">
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-neutral-400 font-medium">Eye Openness</span>
+                    <div class="flex gap-2 font-mono text-neutral-300">
+                      <span id="dash-eye-left">L: 95%</span>
+                      <span id="dash-eye-right">R: 95%</span>
+                    </div>
+                  </div>
+                  <div class="w-full h-2 bg-neutral-800 rounded-full overflow-hidden flex gap-0.5">
+                    <div class="h-full bg-emerald-500 flex-1 rounded-full"></div>
+                    <div class="h-full bg-emerald-500 flex-1 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- FEATURE CARD 3: COGNITIVE & MENTAL STATES (7 STATES) -->
+            <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 p-4 shadow-2xl">
+              <div class="flex items-center justify-between mb-2.5 border-b border-neutral-800 pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  🧠 Cognitive States
+                </span>
+                <span class="text-[11px] font-mono text-neutral-500">Stern / D'Mello / Sweller</span>
+              </div>
+
+              <div id="dash-state-warmup" class="mb-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center justify-between">
+                <span id="dash-warmup-text">Warming up literature window: 0s / 60s</span>
+                <div class="w-20 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                  <div id="dash-warmup-bar" class="h-full bg-amber-400" style="width: 5%"></div>
+                </div>
+              </div>
+
+              <div id="dash-states-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <!-- Rendered dynamically -->
+              </div>
+            </section>
+
+            <!-- FEATURE CARD 4: VALENCE & AROUSAL + FACIAL INTENSITY -->
+            <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 p-4 shadow-2xl">
+              <div class="flex items-center justify-between mb-3 border-b border-neutral-800 pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  📈 Affect & Muscle Intensity
+                </span>
+                <span class="text-[11px] font-mono text-neutral-500">Russell 2D Circumplex</span>
+              </div>
+
+              <div class="space-y-3">
+                <!-- Valence -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-neutral-400 font-medium">Valence (Unhappy ↔ Happy)</span>
+                    <span id="dash-valence-val" class="font-mono font-bold text-neutral-200">0.00</span>
+                  </div>
+                  <div class="w-full h-2.5 bg-neutral-800 rounded-full overflow-hidden relative">
+                    <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-neutral-600"></div>
+                    <div id="dash-valence-bar" class="h-full bg-gradient-to-r from-rose-500 via-neutral-500 to-emerald-500 rounded-full transition-all duration-100" style="width: 50%"></div>
+                  </div>
+                </div>
+
+                <!-- Arousal -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-neutral-400 font-medium">Arousal (Calm ↔ Excited)</span>
+                    <span id="dash-arousal-val" class="font-mono font-bold text-neutral-200">0.00</span>
+                  </div>
+                  <div class="w-full h-2.5 bg-neutral-800 rounded-full overflow-hidden relative">
+                    <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-neutral-600"></div>
+                    <div id="dash-arousal-bar" class="h-full bg-gradient-to-r from-sky-500 via-neutral-500 to-amber-500 rounded-full transition-all duration-100" style="width: 50%"></div>
+                  </div>
+                </div>
+
+                <!-- Muscle Intensity -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="text-neutral-400 font-medium">Facial Muscle Intensity</span>
+                    <span id="dash-intensity-val" class="font-mono font-bold text-indigo-300">0%</span>
+                  </div>
+                  <div class="w-full h-2.5 bg-neutral-800 rounded-full overflow-hidden">
+                    <div id="dash-intensity-bar" class="h-full bg-indigo-500 rounded-full transition-all duration-100" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- FEATURE CARD 5: TOP ACTIVE FACIAL MUSCLES (ARKIT) -->
+            <section class="rounded-2xl bg-neutral-900/90 border border-neutral-800 p-4 shadow-2xl">
+              <div class="flex items-center justify-between mb-2.5 border-b border-neutral-800 pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                  💪 Active Facial Muscles (ARKit)
+                </span>
+                <span class="text-[11px] font-mono text-neutral-500">Baseline-subtracted</span>
+              </div>
+              <div id="dash-blendshapes-list" class="grid grid-cols-1 gap-1.5">
+                <!-- Rendered dynamically -->
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- App Footer -->
+      <footer class="mt-8 pt-4 border-t border-neutral-900 text-xs text-neutral-500 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
+        <div>
+          <span>Gemma 4 AI + MediaPipe FaceLandmarker + HSEmotion AffectNet</span>
+          <span class="mx-2">·</span>
+          <span>100% In-Browser & Local AI Privacy</span>
+        </div>
+        <div>
+          <a
+            href="https://github.com/Arjun10g/live-expression-reader"
+            target="_blank"
+            rel="noopener"
+            class="text-neutral-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+          >
+            GitHub Repository ↗
+          </a>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Help modal -->
+    <div
+      id="help-modal"
+      class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="help-title"
+    >
+      <div class="min-h-full flex items-start justify-center p-4 sm:p-8">
+        <div class="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl">
+          <div class="flex items-start justify-between gap-4 mb-5 border-b border-neutral-800 pb-3">
+            <div>
+              <h2 id="help-title" class="text-xl sm:text-2xl font-bold text-white">
+                How Gemma Adaptive Reader Works
+              </h2>
+              <p class="text-xs text-neutral-400 mt-1">
+                Reads your facial comprehension signals in real time to adapt and re-create documents.
+              </p>
+            </div>
+            <button
+              id="help-close"
+              class="shrink-0 w-8 h-8 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-lg leading-none flex items-center justify-center transition-colors"
+              aria-label="Close help"
+            >
+              ×
+            </button>
+          </div>
+
+          <div class="space-y-4 text-sm text-neutral-300 leading-relaxed">
+            <section>
+              <h3 class="font-bold text-white mb-1">1. Insert Files & Read PDFs</h3>
+              <p>Click <kbd>Insert / Upload PDF</kbd> to load any research paper, book chapter, or textbook. You can also pick from the preloaded sample documents.</p>
+            </section>
+
+            <section>
+              <h3 class="font-bold text-white mb-1">2. Facial Comprehension Tracking</h3>
+              <p>The top-right camera tracks your facial muscles (FACS) and cognitive state:
+              corrugator furrowing (AU4) and eyelid tightening (AU7) indicate confusion; sustained focus indicates high comprehension.</p>
+            </section>
+
+            <section>
+              <h3 class="font-bold text-white mb-1">3. Adaptive Re-Creation with Gemma</h3>
+              <p>Whenever you struggle with a section, click <kbd>⚡ Re-Create with Gemma</kbd> (or wait for the auto-confusion alert). Gemma will rewrite the document with intuitive real-world analogies, step-by-step breakdowns, and simplified terminology.</p>
+            </section>
+
+            <section>
+              <h3 class="font-bold text-white mb-1">4. Chat with Gemma</h3>
+              <p>Switch to the <kbd>Gemma AI Discussion</kbd> tab to ask any question about the document. Gemma is aware of your facial state and will guide you patiently.</p>
+            </section>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-neutral-800 flex justify-end">
+            <button id="help-close-bottom" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white">
+              Got it!
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Entry Module -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,765 @@
+# FocusAI: Build a Real-Time, Multimodal AI Learning Intelligence Platform
+
+## Role
+
+Act as a senior full-stack engineer, AI engineer, computer vision engineer, database architect, and product designer.
+
+Your task is to inspect the existing FocusAI repository and transform it into a fully functional AI-powered classroom platform. Do not merely redesign the dashboard. Implement the frontend, backend, database, real-time communication, AI integration, document processing, student analytics, and teacher workflows.
+
+Use the existing codebase as the starting point. Preserve working features, inspect existing architecture before making changes, and avoid unnecessary rewrites.
+
+The application must work with actual uploaded teaching materials and real classroom interactions. Do not substitute hardcoded dashboards, fabricated student data, simulated gaze measurements, or random AI insights for working functionality.
+
+# 1. Product Vision
+
+FocusAI helps teachers understand what students are struggling with during a live lesson and respond before students fall behind.
+
+The system must answer four questions:
+
+1. What concept is the teacher teaching right now?
+2. Which paragraphs, concepts, or sections are students having difficulty understanding?
+3. Is the difficulty affecting an individual student or a significant portion of the class?
+4. What should the teacher explain again, emphasize, or clarify?
+
+FocusAI should analyze actual teaching materials, optional consent-based eye-tracking signals, student comprehension tests, direct feedback, and classroom interaction data.
+
+The platform has two roles:
+
+- **Teacher:** Creates classes, uploads materials, conducts live sessions, monitors individual and group learning difficulties, identifies important concepts, and receives AI-generated recommendations.
+- **Student:** Joins classes, follows live teaching material, completes short calibration and comprehension tests, provides feedback, and receives personalized learning insights.
+
+The main product feature is a live difficulty-detection and teaching-reiteration system.
+
+# 2. Technology Requirements
+
+Use these technologies as the primary architecture:
+
+- **Frontend:** Preserve the existing framework, routing, components, and package manager wherever possible.
+- **Authentication:** Supabase Auth.
+- **Database:** Supabase PostgreSQL.
+- **File storage:** Supabase Storage with private buckets and appropriate access policies.
+- **Real-time updates:** Supabase Realtime where appropriate, with secure WebSocket or other infrastructure only when genuinely necessary.
+- **AI inference:** Local Gemma 4 through Ollama on the development PC.
+- **Computer vision:** A browser-based, privacy-conscious face-landmark and gaze-estimation pipeline, using an appropriate maintained library if compatible with the existing stack.
+- **Document processing:** Appropriate PDF and PowerPoint text extraction, slide rendering, and OCR tools.
+- **Backend:** Reuse the existing backend if it is functional. Otherwise, choose the smallest appropriate backend architecture that integrates cleanly with Supabase and Ollama.
+
+Inspect the existing project and select concrete libraries based on compatibility. Do not introduce multiple libraries that solve the same problem.
+
+Keep the model name configurable through an environment variable such as `OLLAMA_MODEL`. Verify the exact installed Ollama model tag and its capabilities before implementation.
+
+Do not assume that every Gemma 4 variant supports image input, a particular context length, or every structured-output feature. If vision support is unavailable, process visual material through a compatible vision model or an explicitly separate image-analysis pipeline. Keep all model-dependent capabilities configurable.
+
+Never expose Supabase service-role credentials, private storage credentials, or other secrets in frontend code.
+
+# 3. Existing Dashboard and Design
+
+Retain the visual identity of the current FocusAI dashboard:
+
+- White and pale mint-green surfaces.
+- Deep green primary actions.
+- Rounded cards and subtle shadows.
+- Compact information-dense layouts.
+- Clear typography and professional educational SaaS styling.
+
+Improve the layout where necessary, but prioritize functional behavior over cosmetic changes.
+
+The teacher dashboard should have:
+
+### Header
+- Class name and subject.
+- Live session status.
+- Number of connected students.
+- Current slide and session duration.
+- Upload PDF/PPT/PPTX/notes action.
+- Live reiteration status.
+- Start, pause, resume, and end session controls.
+
+### Left panel: Live alerts
+- Difficulty threshold alerts.
+- Most difficult paragraph or concept.
+- Important concepts identified for the current lesson.
+- Pending student questions.
+- Suggested teacher interventions.
+
+### Center panel: Teaching material
+- The actual current presentation slide or document section.
+- Highlighted paragraphs and concepts.
+- Distinct **Difficult** and **Important** annotations.
+- AI-generated explanation and clarification suggestions.
+- Current processing and synchronization status.
+
+### Lower panel: Group analytics
+- Difficulty over time.
+- Difficulty by slide, paragraph, and concept.
+- Comprehension test results.
+- Number and percentage of students reporting difficulty.
+- Comparison with previous sessions when historical data exists.
+
+### Right panel: Student monitoring
+- Real enrolled students.
+- Current connection status.
+- Individual difficulty indicators with supporting evidence.
+- Latest comprehension results.
+- Student questions and feedback.
+- Optional camera analytics when the student has explicitly enabled them.
+
+All counts, charts, and alerts must come from actual persisted records and live events.
+
+# 4. Supabase Authentication and Roles
+
+Implement authentication using Supabase Auth.
+
+Support two roles: `teacher` and `student`.
+
+A user must be assigned an authorized role, and the role must be verified on the server. Do not rely on a role value supplied by the frontend.
+
+Implement:
+
+- Sign-up and sign-in.
+- Session persistence and logout.
+- Protected routes.
+- Role-specific dashboards.
+- Teacher class creation and management.
+- Student class enrollment or joining through an authorized invitation or class code.
+- Session and material access restricted to authorized class members.
+- Row Level Security policies on all relevant Supabase tables.
+- Private file storage with appropriate authorization policies.
+
+A teacher may access analytics for students in their own classes. A student may access their own individual analytics and the shared classroom material, but not other students' private records.
+
+Use Supabase migrations to define the schema and policies. Never disable Row Level Security simply to make an API request work.
+
+# 5. Teacher Workflow and Live Classroom Synchronization
+
+Implement the complete teacher workflow.
+
+The teacher must be able to:
+
+1. Create a class.
+2. Add or invite students.
+3. Upload learning material.
+4. Start a session.
+5. Navigate through the presentation.
+6. See live classroom feedback and difficulty analysis.
+7. Receive an alert when the class difficulty threshold is exceeded.
+8. Trigger or approve a live reiteration.
+9. Pause, resume, and end the session.
+10. Review individual and group analytics after class.
+
+The teacher's current slide and session state must be authoritative.
+
+When the teacher changes a slide:
+
+- Persist the current slide index in Supabase.
+- Broadcast the update to authorized students.
+- Update connected student screens without refreshing.
+- Reconcile state when a student joins late or reconnects.
+- Prevent students from modifying the teacher's authoritative slide index.
+
+Use real session events and subscriptions. Do not use a timer that randomly changes slides or dashboard metrics.
+
+# 6. Document Processing and Paragraph-Level Mapping
+
+Teachers must be able to upload:
+
+- PDF documents.
+- PPT and PPTX presentations.
+- Lecture notes.
+- Other document types supported by the implementation.
+
+Build a document-processing pipeline that extracts the actual content.
+
+For each document, preserve:
+
+- Document ID and ownership.
+- Page or slide number.
+- Paragraph or content-block identifier.
+- Text and headings.
+- Text position or bounding boxes when available.
+- Related images, diagrams, and equations when relevant.
+- Processing status and extraction confidence.
+
+Create a stable content map that lets the application identify an exact paragraph, slide, or section.
+
+For PDFs, use text extraction when possible and OCR for scanned documents when needed. For PowerPoint files, preserve individual slide boundaries and extract text from their actual contents.
+
+When the document is rendered in the student interface, maintain a mapping between the displayed text and its stored paragraph identifiers.
+
+This mapping is essential: a gaze estimate is useful only if the application can associate it with a specific displayed text region.
+
+If a paragraph cannot be mapped reliably, mark its tracking status as unavailable rather than assigning a false paragraph-level difficulty score.
+
+Support document processing in the background. Display upload progress, processing status, and meaningful errors.
+
+# 7. Student Calibration and Comprehension Tests
+
+Before using eye-tracking data, implement a short calibration and validation flow.
+
+The purpose is to establish how reliably a student's gaze can be estimated and whether the system can associate it with the correct displayed region.
+
+### Calibration flow
+
+1. Explain the purpose of camera access and request explicit permission.
+2. Let the student opt out without losing access to normal classroom features.
+3. Guide the student through a small set of calibration targets distributed across the screen.
+4. Estimate gaze-to-screen mapping.
+5. Evaluate calibration quality using held-out targets or another independent validation procedure.
+6. Show the student whether calibration is usable.
+7. Allow recalibration if accuracy is insufficient.
+
+Do not claim precise paragraph tracking when the calibration error is too high.
+
+### Comprehension validation
+
+Create short tests that can be associated with actual document sections.
+
+Support:
+
+- Teacher-created questions.
+- AI-generated questions grounded in the current slide.
+- Multiple-choice comprehension checks.
+- Brief explanations or confidence ratings where appropriate.
+- Before-and-after comparisons when suitable.
+
+For example, after a student reads a paragraph about Newton's second law, the system may ask a short question about the relationship between force, mass, and acceleration.
+
+Store the actual answer, correctness where determinable, timestamp, associated paragraph or concept, and confidence response if collected.
+
+Use these tests to help validate difficulty predictions. Eye movements alone must never be treated as ground truth.
+
+# 8. Privacy-Conscious Eye Tracking and Facial Analysis
+
+Implement optional, consent-based webcam analytics.
+
+Important distinction: this is facial landmark and gaze analysis, not facial identity recognition.
+
+Use Supabase authentication to establish who the student is. Do not identify students by matching their faces, create face-recognition profiles, or infer their identity from biometric features.
+
+### Signals to estimate
+
+When the student opts in and the camera is functioning, estimate:
+
+- Gaze position on the screen.
+- Whether the gaze intersects a mapped paragraph region.
+- Approximate dwell time within a paragraph.
+- Number and duration of returns to a paragraph.
+- Reading progression through the displayed text.
+- Confidence and quality of the gaze estimate.
+- Periods when the estimate is unavailable or unreliable.
+
+Do not treat frequent rereading, long dwell time, or looking away as definitive evidence of confusion.
+
+A student may reread because they are interested, thoughtful, distracted, or already understand the material.
+
+### Privacy requirements
+
+- Obtain explicit, informed camera consent.
+- Provide a clear opt-out and camera-off state.
+- Prefer on-device video processing.
+- Do not upload or persist raw webcam footage by default.
+- Avoid storing face images, face embeddings, or identity templates.
+- Send only the minimum derived signals necessary for the product.
+- Clearly explain that gaze estimates are approximate.
+- Provide a way to disable camera analytics independently of classroom participation.
+- Apply age-appropriate privacy protections if minors use the platform.
+
+The system must remain useful without webcam access through comprehension tests, student feedback, and interaction analytics.
+
+# 9. Multimodal Difficulty Estimation
+
+Build a difficulty-estimation service that combines independent evidence sources.
+
+Possible inputs include:
+
+1. Gaze dwell time and reading progression.
+2. Repeated returns to a paragraph.
+3. Comprehension question results.
+4. Student-reported confusion.
+5. Requests for clarification.
+6. Confidence ratings.
+7. Class-level patterns across the same content.
+
+Create a transparent and configurable scoring approach.
+
+Do not assume that these signals have universally correct weights. Begin with a simple, explainable rule-based baseline, record its outcomes, and evaluate whether the scores predict observed comprehension difficulties before introducing more complex models.
+
+Every paragraph-level estimate must include:
+
+- Content block and slide identifiers.
+- The number of students with sufficient observations.
+- The number and percentage with evidence of difficulty.
+- The evidence sources available.
+- Data quality and confidence.
+- The time window.
+- A status such as `insufficient_data`, `monitoring`, `difficulty_detected`, or `important`.
+- The distinction between observed behavior and inferred difficulty.
+
+Do not label an individual student as struggling solely because of gaze behavior. Prefer corroborating evidence from comprehension checks or explicit feedback.
+
+Keep difficulty estimation separate from AI-generated explanations. A model may suggest why a paragraph is confusing, but the underlying evidence and counts must come from actual observations.
+
+# 10. The Two Core Flags: Difficult and Important
+
+Implement two distinct flags throughout the product.
+
+## Flag A: Difficult
+
+The Difficult flag identifies paragraphs or concepts where evidence suggests students are having trouble.
+
+A paragraph may be marked Difficult when a configurable rule is met using available, sufficiently reliable signals.
+
+Show:
+
+- Paragraph or concept.
+- Slide number.
+- Number of affected students.
+- Number of students with valid observations.
+- Difficulty percentage.
+- Evidence and confidence.
+- Suggested teacher action.
+
+The Difficult flag must be updated as new feedback and test results arrive.
+
+Do not generate a Difficult flag merely because a paragraph contains complex vocabulary or because one student looked at it for a long time.
+
+## Flag B: Important
+
+The Important flag identifies concepts that deserve emphasis, even if students are not currently struggling.
+
+Determine importance from grounded evidence such as:
+
+- Teacher-selected learning objectives.
+- Explicitly marked important material.
+- Key definitions, formulas, and concepts.
+- Prerequisites for later topics.
+- Relevance to stated learning outcomes.
+- Instructor-confirmed emphasis.
+
+Use Gemma to suggest important concepts from actual lesson content, but make the rationale visible and allow the teacher to override the suggestion.
+
+Important and Difficult must remain independent. A paragraph may be:
+
+- Important only.
+- Difficult only.
+- Both Important and Difficult.
+- Neither.
+
+Do not confuse the importance of a concept with the measured difficulty students experience.
+
+# 11. Group Difficulty Threshold and Automatic Reiteration
+
+Implement the main class-level trigger.
+
+The teacher must be able to configure:
+
+- Number of enrolled or expected students.
+- Minimum number of valid observations.
+- Difficulty threshold.
+- Whether the trigger uses a count, percentage, or both.
+- Whether reiteration requires teacher approval or starts automatically.
+- Which feedback signals count as difficulty evidence.
+
+### Default example
+
+For a class of 40 students, configure the difficulty threshold as 10 students.
+
+Interpret the threshold precisely:
+
+**Trigger when more than 10 eligible students show evidence of difficulty on the same content section.**
+
+That means:
+
+- 8 affected students: no threshold alert.
+- 10 affected students: no threshold alert.
+- 11 affected students: threshold reached.
+
+These are example counts, not fabricated live metrics.
+
+Only count eligible students once per paragraph and evaluation window. Prevent repeated events from inflating the count.
+
+Track both the affected count and the denominator. For example, 11 affected students out of 40 expected students is 27.5%, but 11 affected students out of only 20 valid observations is 55% of observed students.
+
+The teacher dashboard must display the distinction clearly.
+
+If insufficient students have valid observations, show an insufficient-data state instead of claiming that the whole class understands or struggles with the topic.
+
+### Live reiteration workflow
+
+When the configured trigger is reached:
+
+1. Identify the specific paragraph, concept, slide, and evidence that triggered the alert.
+2. Persist the threshold event.
+3. Notify the teacher dashboard in real time.
+4. Show the affected count, denominator, percentage, and signal quality.
+5. Ask Gemma to generate a short, context-grounded alternative explanation using the actual material.
+6. Include a simple example, analogy, or comprehension question where appropriate.
+7. Let the teacher review, edit, approve, or dismiss the suggestion.
+8. When approved, broadcast the reiteration to the class.
+9. Allow the teacher to resume the original lesson.
+10. Offer a short follow-up comprehension check.
+11. Compare the follow-up results with the earlier results.
+
+Support an explicitly configured automatic mode, but keep teacher approval as the default.
+
+Never allow the AI to unexpectedly interrupt a class because of one noisy signal or a duplicated event.
+
+Add a cooldown and a unique threshold-event identifier so that the same issue does not generate repeated alerts on every update.
+
+After reiteration, record the intervention and subsequent evidence. Do not declare the issue resolved until sufficient follow-up evidence exists.
+
+# 12. Gemma 4 Through Ollama
+
+Use the local Gemma 4 installation as the primary AI inference engine.
+
+Create a dedicated AI service rather than calling Ollama independently from frontend components.
+
+The frontend must never connect directly to Ollama or expose its endpoint to untrusted clients.
+
+Configure the backend using environment variables such as:
+
+- `OLLAMA_BASE_URL`
+- `OLLAMA_MODEL`
+
+Use the installed model tag after verifying it with Ollama. Do not hardcode an unverified tag.
+
+The AI service should support the following tasks.
+
+### Material analysis
+
+- Summarize the current slide.
+- Extract important concepts.
+- Identify potentially confusing terminology or reasoning steps.
+- Generate questions grounded in the actual material.
+- Explain concepts at different levels of complexity.
+
+### Difficulty explanation
+
+Given an actual paragraph, associated student feedback, and valid aggregate signals, suggest plausible sources of confusion.
+
+Distinguish observed evidence from hypotheses. Do not infer the thoughts or mental state of an individual student from their face.
+
+### Live reiteration
+
+Generate a short alternative explanation that:
+
+- Refers to the actual paragraph or concept.
+- Preserves factual correctness.
+- Uses an appropriate example or analogy.
+- Avoids introducing unsupported facts.
+- Includes a short comprehension question.
+- Can be reviewed by the teacher.
+
+### Important concept extraction
+
+Identify candidate definitions, formulas, prerequisite concepts, and learning objectives. Store the rationale and allow teacher confirmation.
+
+### Structured output
+
+Where supported by the selected model, use schema-constrained structured output and validate every response.
+
+Otherwise, request a structured format and validate it before use.
+
+Implement:
+
+- Connection and model availability checks.
+- Request timeouts.
+- Error handling.
+- Cancellation for obsolete slide analyses.
+- Bounded context windows.
+- Debouncing and request deduplication.
+- Caching where appropriate.
+- Model response validation.
+- Clear loading and failure states.
+
+When the teacher advances to a new slide, discard or mark obsolete any pending analysis for the previous slide so it cannot overwrite current insights.
+
+Keep non-AI classroom functionality operational when Ollama is unavailable.
+
+Do not use random fallback responses or hardcoded subject-specific outputs when inference fails.
+
+# 13. Real-Time Architecture
+
+Use a server-authoritative event-driven architecture.
+
+Suggested event types:
+
+- `CLASS_CREATED`
+- `SESSION_STARTED`
+- `SESSION_PAUSED`
+- `SESSION_RESUMED`
+- `SESSION_ENDED`
+- `MATERIAL_UPLOADED`
+- `MATERIAL_PROCESSED`
+- `SLIDE_CHANGED`
+- `CALIBRATION_COMPLETED`
+- `GAZE_SIGNAL_UPDATED`
+- `COMPREHENSION_RESPONSE_SUBMITTED`
+- `STUDENT_FEEDBACK_SUBMITTED`
+- `DIFFICULTY_SCORE_UPDATED`
+- `DIFFICULTY_THRESHOLD_REACHED`
+- `IMPORTANT_FLAG_UPDATED`
+- `REITERATION_PROPOSED`
+- `REITERATION_APPROVED`
+- `FOLLOWUP_TEST_COMPLETED`
+
+Define typed event payloads with validation and authorization.
+
+Use Supabase Realtime for database changes and presence where appropriate. Do not broadcast every webcam frame or raw gaze sample through database change subscriptions.
+
+Batch derived gaze signals locally and send only appropriate aggregated observations. Keep high-frequency sensor processing separate from the reliable session-state channel.
+
+For each event:
+
+1. Validate the user, role, class, and session.
+2. Validate and deduplicate the event.
+3. Update authoritative state.
+4. Persist relevant observations or state transitions.
+5. Recompute affected aggregates.
+6. Evaluate threshold conditions.
+7. Invoke Gemma asynchronously when needed.
+8. Broadcast authorized updates.
+
+Make operations idempotent. Ensure events from one class or session cannot affect another.
+
+# 14. Supabase Database Design
+
+Inspect the existing database and adapt it rather than creating redundant tables.
+
+Implement an appropriate relational model for:
+
+- `profiles`
+- `classes`
+- `class_members`
+- `sessions`
+- `materials`
+- `document_pages`
+- `content_blocks`
+- `student_consents`
+- `calibration_results`
+- `gaze_observations`
+- `comprehension_tests`
+- `comprehension_responses`
+- `student_feedback`
+- `difficulty_assessments`
+- `content_flags`
+- `session_events`
+- `reiteration_events`
+- `ai_insights`
+
+You may consolidate or rename these according to the existing architecture, but preserve the underlying data relationships.
+
+Requirements:
+
+- Use foreign keys and appropriate indexes.
+- Enforce role and class membership rules.
+- Store timestamps and session identifiers.
+- Associate difficulty assessments with specific content blocks.
+- Store evidence sources and confidence separately from generated explanations.
+- Preserve historical results.
+- Prevent duplicate feedback submissions and threshold events where appropriate.
+- Apply appropriate retention rules to sensitive analytics.
+- Avoid storing raw video or unnecessary biometric data.
+- Add versioned database migrations.
+- Enforce access control with Row Level Security and server-side authorization.
+
+Avoid excessive database writes from high-frequency sensor data. Aggregate locally and persist only the data necessary for reliable analytics.
+
+# 15. Individual Student Analytics
+
+Provide the teacher with a student-specific learning profile within the teacher's authorized class.
+
+For each student, display:
+
+- Comprehension test history.
+- Topics or paragraphs where difficulty was repeatedly observed.
+- Explicit feedback history.
+- Important concepts completed.
+- Results before and after reiteration.
+- Number of valid observations supporting each inference.
+- Data quality and confidence limitations.
+
+Avoid presenting speculative mental-state labels or definitive claims about attention.
+
+A teacher must be able to distinguish between:
+
+- Direct student feedback.
+- Incorrect comprehension answers.
+- Inferred difficulty based on multiple signals.
+- Missing or unreliable observations.
+
+Provide students with access to their own learning insights. Do not expose another student's private results.
+
+# 16. Group and Class Analytics
+
+Build real aggregate analytics by:
+
+- Class.
+- Session.
+- Slide.
+- Paragraph.
+- Concept.
+- Subject or topic.
+- Reiteration event.
+
+Show which content sections had the highest observed difficulty, how many students were affected, and how comprehension changed after clarification.
+
+Distinguish between:
+
+- Expected class size.
+- Students currently connected.
+- Students who submitted feedback.
+- Students with valid comprehension results.
+- Students with valid gaze observations.
+
+Never silently use one denominator for all these metrics.
+
+Group analysis should be based on sufficient actual observations and should not expose individual identities unnecessarily.
+
+Use persisted data for charts. Display meaningful empty states when no data exists.
+
+# 17. Student Experience
+
+Build a separate student dashboard and live classroom interface.
+
+Students should be able to:
+
+- Join an authorized class.
+- View the teacher's current slide.
+- Access shared notes and materials.
+- Enable or decline optional camera analytics.
+- Complete calibration and comprehension tests.
+- Mark content as difficult.
+- Mark content as important or useful where appropriate.
+- Ask questions.
+- Request an explanation again.
+- Receive approved reiterations.
+- Review personal learning insights.
+
+Make the interface responsive and accessible.
+
+Provide clear feedback about camera status, calibration quality, connection status, and unavailable features.
+
+Students must not be penalized for declining camera access. Alternative learning signals must remain available.
+
+# 18. Performance, Reliability, and Security
+
+Implement appropriate:
+
+- File validation and upload-size limits.
+- Private storage access.
+- Authentication and authorization.
+- Supabase Row Level Security.
+- Rate limits for feedback and questions.
+- Event deduplication.
+- Real-time reconnection and state recovery.
+- Background document processing.
+- AI request cancellation and timeouts.
+- Error logging without sensitive content.
+- Session cleanup.
+- Resource cleanup for webcam and tracking pipelines.
+- Camera permission handling.
+- Keyboard accessibility and loading states.
+
+Avoid polling the database continuously when a real-time subscription is appropriate.
+
+Do not allow expensive AI inference to block slide changes, feedback submissions, or other essential classroom interactions.
+
+# 19. Testing Requirements
+
+Implement automated tests for the critical workflows.
+
+Verify this end-to-end scenario:
+
+1. A teacher signs in through Supabase.
+2. The teacher creates a class and enrolls students.
+3. The teacher uploads an actual PDF or PowerPoint.
+4. The system extracts and maps its content blocks.
+5. A live session starts.
+6. Two or more student clients join.
+7. The teacher changes slides and all students synchronize.
+8. Students complete calibration where supported and permitted.
+9. Students submit real comprehension results and feedback.
+10. The system computes difficulty assessments from available evidence.
+11. The Important and Difficult flags behave independently.
+12. The threshold remains untriggered at 10 affected students with a configured threshold of 10.
+13. The threshold triggers at 11 affected students under the same configuration.
+14. Duplicate observations do not inflate the count.
+15. Gemma generates an explanation grounded in the actual uploaded content.
+16. The teacher reviews and approves a reiteration.
+17. The approved explanation reaches connected students.
+18. Follow-up results are stored and compared with earlier results.
+19. Reconnecting clients recover the current session state.
+20. Unauthorized users cannot access private class analytics.
+21. Declining camera permission does not prevent classroom participation.
+22. The application behaves correctly when Ollama is unavailable.
+23. Historical data remains available after backend restarts.
+
+Mock external services only in isolated tests, never in the production user-facing workflow.
+
+Run the available unit tests, integration tests, type checks, and production build. Report actual results and remaining failures.
+
+# 20. Implementation Order
+
+Work directly in the existing repository and execute the project, not merely describe it.
+
+Implement in this order:
+
+**Phase 1: Foundation**
+- Audit the codebase.
+- Implement Supabase authentication and role-based access.
+- Configure database migrations, Row Level Security, and private storage.
+- Replace hardcoded session and student data with actual records.
+
+**Phase 2: Live classroom**
+- Implement class and session management.
+- Upload and process PDF/PPT/PPTX materials.
+- Implement server-authoritative slide synchronization.
+- Implement live student feedback and questions.
+
+**Phase 3: Local AI**
+- Integrate Ollama and the verified local Gemma 4 model.
+- Implement dynamic document analysis, Important flag suggestions, and teacher-facing explanations.
+- Add a working alternative-explanation generator grounded in actual content.
+
+**Phase 4: Difficulty analytics**
+- Implement comprehension tests.
+- Implement optional camera consent and calibration.
+- Implement paragraph mapping and gaze-quality checks.
+- Build multimodal difficulty estimation.
+- Implement the configurable threshold and live reiteration workflow.
+
+**Phase 5: Analytics and refinement**
+- Implement individual and group analytics.
+- Complete the responsive student and teacher interfaces.
+- Add historical comparisons and post-reiteration evaluation.
+- Test security, failure states, reconnection, and persistence.
+
+Do not leave a phase represented by placeholder UI while claiming it is implemented.
+
+If an external dependency or model capability is missing, explain the limitation and implement the remaining functionality without fabricating results.
+
+# 21. Completion Requirements
+
+At the end, provide:
+
+1. A summary of the architecture implemented.
+2. A list of the major files and modules changed.
+3. The Supabase tables, migrations, and Row Level Security policies added.
+4. The verified Ollama model tag and any capability limitations discovered.
+5. Required environment variables and an `.env.example`.
+6. Commands to run the frontend, backend, database migrations, and AI service.
+7. Tests and production builds executed, including actual failures.
+8. Features that are fully functional.
+9. Features that remain incomplete and the exact reason.
+10. A manual end-to-end testing procedure.
+
+Do not claim webcam tracking, paragraph-level mapping, live reiteration, authentication, or AI analysis works unless the corresponding implementation has been tested.
+
+## Final product principle
+
+FocusAI must connect real classroom behavior to meaningful teaching decisions:
+
+**Actual teaching material → mapped content → consent-based student signals and comprehension results → evidence-based difficulty estimation → class threshold → Gemma-generated reiteration → teacher approval → follow-up comprehension measurement.**
+
+The result should be a functional, privacy-conscious, real-time AI learning platform, not a static dashboard that merely looks intelligent.

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clariclass-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:////app/data/clariclass.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-default_secret_key_change_in_prod_12345}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - backend_data:/app/data
+      - backend_uploads:/app/uploads
+    networks:
+      - clariclass-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clariclass-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - clariclass-net
+
+volumes:
+  backend_data:
+  backend_uploads:
+
+networks:
+  clariclass-net:
+    driver: bridge

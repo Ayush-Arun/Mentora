@@ -1,0 +1,11 @@
+# FocusAI — Git Ignore Rules
+node_modules/
+.env
+data/*.db
+data/uploads/
+*.log
+.DS_Store
+Thumbs.db
+dist/
+coverage/
+.vitest/

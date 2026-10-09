@@ -1,0 +1,1051 @@
+/* =============================================================================
+   FocusAI — Live Classroom Styles
+   Theme: Mint-green / White / Deep-green with Glassmorphism
+   ============================================================================= */
+
+.classroom-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-canvas, #f0fdf4);
+  overflow: hidden;
+}
+
+/* ─── Classroom Top Navigation Bar ─────────────────────────────────────────── */
+.classroom-header {
+  height: 64px;
+  background: var(--surface-glass, rgba(255, 255, 255, 0.9));
+  border-bottom: 1px solid var(--border, rgba(6, 95, 70, 0.12));
+  backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+}
+
+.classroom-title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.classroom-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.classroom-status-pill.live {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-ring 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ─── Main Stage Layout ────────────────────────────────────────────────────── */
+.classroom-body {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .classroom-body {
+    grid-template-columns: 1fr;
+  }
+  .classroom-sidebar {
+    display: none;
+  }
+}
+
+/* ─── Slide Presentation Stage ─────────────────────────────────────────────── */
+.slide-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.slide-viewport {
+  width: 100%;
+  max-width: 960px;
+  min-height: 540px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(6, 95, 70, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(6, 95, 70, 0.1);
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.slide-content-header {
+  font-size: 28px;
+  font-weight: 700;
+  color: #065f46;
+  border-bottom: 2px solid rgba(110, 231, 183, 0.3);
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+}
+
+/* ─── Paragraph-Level Content Blocks ───────────────────────────────────────── */
+.content-block {
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+  line-height: 1.65;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.content-block:hover {
+  background: rgba(240, 253, 244, 0.8);
+  border-color: rgba(6, 95, 70, 0.2);
+}
+
+.content-block.tracking-available::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 2px;
+  background: #6ee7b7;
+  opacity: 0.6;
+}
+
+.content-block.is-confused {
+  background: rgba(254, 226, 226, 0.5) !important;
+  border-color: #f87171 !important;
+}
+
+.content-block-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+/* ─── Teacher Control Toolbar ──────────────────────────────────────────────── */
+.slide-toolbar {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface-glass, rgba(255, 255, 255, 0.95));
+  padding: 10px 20px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  backdrop-filter: blur(12px);
+  z-index: 50;
+}
+
+.slide-nav-btn {
+  background: #065f46;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+
+.slide-nav-btn:hover:not(:disabled) {
+  background: #047857;
+}
+
+.slide-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.slide-counter {
+  font-size: 14px;
+  font-weight: 600;
+  color: #065f46;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ─── Live Sidebar (Feedback, Difficulties & Chat) ─────────────────────────── */
+.classroom-sidebar {
+  background: var(--surface-glass, rgba(255, 255, 255, 0.85));
+  border-left: 1px solid var(--border, rgba(6, 95, 70, 0.12));
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-tab-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(6, 95, 70, 0.08);
+  font-size: 15px;
+  font-weight: 700;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.feedback-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(6, 95, 70, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.feedback-card.confused {
+  border-left: 4px solid #ef4444;
+}
+
+.feedback-card.important {
+  border-left: 4px solid #f59e0b;
+}
+
+.feedback-card.question {
+  border-left: 4px solid #3b82f6;
+}
+
+.feedback-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.feedback-body {
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.feedback-time {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* ─── Student Quick Action Bar ─────────────────────────────────────────────── */
+.student-action-bar {
+  padding: 12px 16px;
+  background: #ffffff;
+  border-top: 1px solid rgba(6, 95, 70, 0.1);
+  display: flex;
+  gap: 8px;
+}
+
+.quick-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.quick-btn.confused:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.quick-btn.question:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+/* ─── AI Insights Panel & Tabs ─────────────────────────────────────────────── */
+.sidebar-tabs {
+  display: flex;
+  background: rgba(6, 95, 70, 0.05);
+  padding: 4px;
+  border-radius: 8px;
+  margin: 10px 16px;
+  gap: 4px;
+}
+
+.sidebar-tab-btn {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sidebar-tab-btn.active {
+  background: #ffffff;
+  color: #065f46;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.ai-insights-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ai-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(6, 95, 70, 0.1);
+  box-shadow: 0 2px 8px rgba(6, 95, 70, 0.04);
+}
+
+.ai-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ai-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-action-btn {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-action-btn:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.ai-summary-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #10b981;
+}
+
+.concepts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.concept-item {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(6, 95, 70, 0.08);
+}
+
+.concept-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.concept-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.concept-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.concept-badge.high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.concept-badge.medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.concept-badge.low {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.concept-def {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+/* ─── Alternative Explanations Modal ───────────────────────────────────────── */
+.reiteration-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.reiteration-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  overflow: hidden;
+}
+
+.reiteration-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0fdf4;
+}
+
+.reiteration-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.alternative-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+
+.alternative-card:hover {
+  border-color: #10b981;
+  background: #ffffff;
+}
+
+.alternative-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 8px;
+}
+
+.alternative-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.alternative-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ─── Student Broadcast Banner ─────────────────────────────────────────────── */
+.student-broadcast-card {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================================================
+   Phase 4: Multimodal Calibration, Difficulty Indicators, Quizzes & Reiteration
+   ============================================================================= */
+
+/* ─── 9-Point Eye Tracking Calibration ──────────────────────────────────────── */
+.consent-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.consent-modal {
+  max-width: 480px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  text-align: center;
+}
+
+.calibration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  cursor: crosshair;
+}
+
+.calibration-instructions {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #ffffff;
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.calibration-instructions h3 {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.calibration-instructions p {
+  margin: 0;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.calibration-dot {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pulse-target 1s infinite alternate;
+}
+
+@keyframes pulse-target {
+  0% { transform: translate(-50%, -50%) scale(0.9); box-shadow: 0 0 10px rgba(239, 68, 68, 0.7); }
+  100% { transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 24px rgba(239, 68, 68, 1); }
+}
+
+/* ─── Multimodal Difficulty Badges on Content Blocks ───────────────────────── */
+.content-block.difficulty-detected {
+  background: rgba(254, 242, 242, 0.75) !important;
+  border-color: #f87171 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.08);
+}
+
+.content-block.needs-attention {
+  background: rgba(255, 251, 235, 0.75) !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.08);
+}
+
+.difficulty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.difficulty-badge.difficulty-detected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.difficulty-badge.needs-attention {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.difficulty-badge.monitoring {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* ─── Teacher Reiteration Proposal Banner ─────────────────────────────────── */
+.reiteration-alert-banner {
+  background: linear-gradient(135deg, #fff1f2, #fef2f2);
+  border: 1px solid #fecdd3;
+  border-left: 5px solid #e11d48;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.reiteration-alert-text {
+  font-size: 13px;
+  color: #881337;
+  line-height: 1.4;
+}
+
+.reiteration-alert-btn {
+  background: #e11d48;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.reiteration-alert-btn:hover {
+  background: #be123c;
+}
+
+/* ─── Comprehension Quiz Popover & Cards ────────────────────────────────────── */
+.quiz-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.quiz-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  overflow: hidden;
+  animation: slideDown 0.3s ease-out;
+}
+
+.quiz-modal-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quiz-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quiz-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quiz-option-btn {
+  text-align: left;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1e293b;
+}
+
+.quiz-option-btn:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.quiz-option-btn.selected {
+  background: #ecfdf5;
+  border-color: #059669;
+  color: #065f46;
+  font-weight: 600;
+}
+
+.confidence-selector {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.confidence-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.confidence-btn {
+  flex: 1;
+  padding: 8px 4px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.confidence-btn:hover {
+  border-color: #10b981;
+}
+
+.confidence-btn.active {
+  background: #065f46;
+  color: #ffffff;
+  border-color: #065f46;
+}
+
+/* =============================================================================
+   Phase 5: Individual & Group Analytics, Multi-Denominators & Reiteration Evals
+   ============================================================================= */
+
+/* ─── Classroom Analytics Tab ──────────────────────────────────────────────── */
+.analytics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid rgba(6, 95, 70, 0.12);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.stat-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #065f46;
+  line-height: 1.2;
+}
+
+.stat-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.denominator-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12px;
+}
+
+.denominator-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #334155;
+}
+
+.denominator-tag {
+  font-weight: 700;
+  color: #065f46;
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+/* ─── Student Roster in Sidebar ────────────────────────────────────────────── */
+.student-roster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.student-roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.student-roster-item:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.student-roster-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.student-roster-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.student-roster-badge.alert {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.student-roster-badge.ok {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+/* ─── Individual Student Profile Modal ─────────────────────────────────────── */
+.student-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2800;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.student-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 88vh;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(6, 95, 70, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.student-modal-header {
+  padding: 18px 22px;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.student-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.evidence-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.evidence-box-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #065f46;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ─── Post-Reiteration Evaluation Cards ────────────────────────────────────── */
+.reiteration-eval-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.resolution-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.resolution-pill.resolved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.resolution-pill.partially_resolved {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.resolution-pill.needs_further_review {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.resolution-pill.pending_followup {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
